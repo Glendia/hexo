@@ -1,0 +1,43 @@
+name: Deploy Hexo to Aliyun OSS
+
+on:
+  push:
+    branches:
+      - main # 或者您使用的其他分支名称
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14' # 您可以指定需要的Node.js版本
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build Hexo site
+      run: hexo generate
+
+    - name: Install ossutil
+      run: |
+        wget https://gosspublic.alicdn.com/ossutil/1.7.15/ossutil64
+        chmod +x ossutil64
+        sudo mv ossutil64 /usr/local/bin/
+
+    - name: Configure ossutil
+      env:
+        ALIYUN_ACCESS_KEY_ID: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
+        ALIYUN_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
+      run: |
+        echo "[default]\nlanguage=EN\nendpoint=http://oss-cn-hangzhou.aliyuncs.com\naccessKeyID=${ALIYUN_ACCESS_KEY_ID}\naccessKeySecret=${ALIYUN_ACCESS_KEY_SECRET}" > ~/.ossutilconfig
+
+    - name: Upload to Aliyun OSS
+      run: |
+        cd public
+        ossutil64 cp -r . oss://your-bucket-name --update
